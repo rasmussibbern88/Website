@@ -1,0 +1,18 @@
+#+setupfile: ../templates/level-0.org
+#+title: Jutlandia: Det Nordjyske CTF Hold
+#+options: toc:nil num:0 
+
+* Kommende Arrangementer
+- {{{timestamp(2021-10-22 - 2021-10-24)}}}: [[https://ctf.osucyber.club/][BuckEye CTF]]
+
+* Færdige Arrangementer
+- {{{timestamp(2021-10-16 12:00)}}}: Meetup med gratis pizza på AAU
+  {{{loc(Fredrik Bajers Vej 7A room 106)}}}
+
+* Misc
+Join us on [[https://discord.gg/aRrMKBnYze][Discord]]
+Contribute on [[https://github.com/Jutlandia][Github]]
+
+Also try out [[https://nixos.org/][NixOs]]
+
+

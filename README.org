@@ -1,0 +1,10 @@
+#+title: Jutlandia club website
+
+This repository contains the code that generates the website for [[https://jutlandia.club]].
+
+It utilizes org-mode from Emacs, as a static site generator.
+To build the site, simply run ~build.sh~.
+It's a small shell script that runs the command
+: $ emacs -Q --script export.el
+
+After which it will convert the ~.org~ files, in the ~pages/~ directory, into ~.html~ files in the root directory of the repository.
