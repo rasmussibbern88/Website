@@ -6,11 +6,12 @@ pkgs.stdenv.mkDerivation {
 
   buildPhase = ''
     # Put a shell script here.
-    emacs -Q --script export.el
+    HOME=/tmp/ emacs -Q --script export.el
     '';
 
   installPhase = ''
       mkdir -p $out;
+      cp -r favicon.ico static/ $out/
       mv *.html $out/;
     '';
 }
