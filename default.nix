@@ -6,10 +6,11 @@ pkgs.stdenv.mkDerivation {
 
   buildPhase = ''
     # Put a shell script here.
+    emacs -Q --script export.el
     '';
 
   installPhase = ''
       mkdir -p $out;
-      mv jutlandia-output/* $out/;
+      mv *.html $out/;
     '';
 }
