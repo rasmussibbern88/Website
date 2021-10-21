@@ -16,3 +16,9 @@ Contribute on [[https://github.com/Jutlandia][Github]]
 Also try out [[https://nixos.org/][NixOs]]
 
 
+#+begin_export html
+<!-- 
+Ssssh! Don't tell this secret to anybody:
+V0hHe1VoZUU0X3FoX3M0YXE3XzM3X3MxNDl9
+-->
+#+end_export
