@@ -11,7 +11,7 @@ pkgs.stdenv.mkDerivation {
 
   installPhase = ''
       mkdir -p $out;
-      cp -r favicon.ico static/ $out/
+      cp -r robots.txt favicon.ico static/ $out/
       mv *.html $out/;
     '';
 }
