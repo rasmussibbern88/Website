@@ -4,7 +4,9 @@
 
 * Kommende Arrangementer
 - {{{timestamp(2021-11-03 16:30)}}}: Heap exploitation workshop med zanderdk
-  {{{loc(TBD)}}}
+  {{{loc(Fredrik Bajers Vej 7A)}}}
+- {{{timestamp(2021-11-13)}}}: Film hygge og hacking
+  {{{loc(Fredrik Bajers Vej 7A)}}}
 * Færdige Arrangementer
 - {{{timestamp(2021-10-22 - 2021-10-24)}}}: [[https://ctf.osucyber.club/][BuckEye CTF]]
   Resultat: 4. plads
