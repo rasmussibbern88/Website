@@ -3,15 +3,22 @@
 #+options: toc:nil num:0 
 
 * Kommende Arrangementer
-- {{{timestamp(2021-11-03 16:30)}}}: Heap exploitation workshop med zanderdk
-  {{{loc(Fredrik Bajers Vej 7A room 106)}}}
+- {{{timestamp(2021-11-06 10:00)}}}: [[https://damctf.xyz/][DamCTF]]
+
 - {{{timestamp(2021-11-13)}}}: Film hygge og hacking
   {{{loc(Fredrik Bajers Vej 7A)}}}
+
+
 * Færdige Arrangementer
+- {{{timestamp(2021-11-03 16:30)}}}: Heap exploitation workshop med zanderdk
+  {{{loc(Fredrik Bajers Vej 7A room 106)}}}
+
 - {{{timestamp(2021-10-22 - 2021-10-24)}}}: [[https://ctf.osucyber.club/][BuckEye CTF]]
   Resultat: 4. plads
+
 - {{{timestamp(2021-10-16 12:00)}}}: Meetup med gratis pizza på AAU
   {{{loc(Fredrik Bajers Vej 7A room 106)}}}
+
 
 * Misc
 Join us on [[https://discord.gg/aRrMKBnYze][Discord]]
