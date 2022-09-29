@@ -5,7 +5,16 @@ app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///jutlandia.db"
 db = SQLAlchemy(app)
 
-class Event(db.Model):
+class Admins(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user = db.Column(db.Text, unique=True, nullable=False)
+    password = db.Column(db.Text, nullable=False)
+
+    def __init__(self, user, password):
+        self.user = user
+        self.password = password
+
+class Events(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name     = db.Column(db.Text, nullable=True)
     link     = db.Column(db.Text, nullable=True)
@@ -35,3 +44,23 @@ def index():
                            upcoming_events=upcoming,
                            finished_events=finished)
 
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        user = request.form["username"]
+        passwd = request.form["password"]
+
+        result = Admins.query.filter_by(user=user).first()
+        if result is None:
+            return "Wrong username or password"
+        elif check_password_hash(result.password, passwd):
+            session["username"] = user
+            return redirect(url_for('admin'))
+        else:
+            return "Wrong username or password"
+
+    if request.method == "GET":
+        if "username" not in session:
+            return render_template("login.html")
+        else:
+            return redirect(url_for('admin'))
