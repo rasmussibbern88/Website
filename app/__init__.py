@@ -1,7 +1,27 @@
-from flask import Flask, render_template
+from flask import (
+    Flask,
+    render_template,
+    session,
+    request,
+    redirect,
+    url_for
+)
 from flask_sqlalchemy import SQLAlchemy
 
+from werkzeug.security import check_password_hash, generate_password_hash
+
+from os import environ
+
+
+
 app = Flask(__name__)
+
+try:
+    app.secret_key = environ['APP_SECRET_KEY']
+except KeyError as e:
+    print("Caught KeyError, 'APP_SECRET_KEY' not set.\nUsing default")
+    app.secret_key = "super Strong and Secret Key"
+
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///jutlandia.db"
 db = SQLAlchemy(app)
 
@@ -43,6 +63,15 @@ def index():
     return render_template("index.html",
                            upcoming_events=upcoming,
                            finished_events=finished)
+
+@app.route("/admin", methods=["GET"])
+def admin():
+   if "username" in session:
+       return render_template(
+           "admin.html",
+       )
+
+   return redirect(url_for('login'))
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
