@@ -1,58 +1,48 @@
-<!DOCTYPE html>
-<html lang="en">
-    <head>
-        <!-- 2021-10-18 Mon 15:18 -->
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Jutlandia: Det Nordjyske CTF Hold</title>
-        <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css' )}}" />
-    </head>
-    <body>
-        <div id="content">
-            <header>
-                <h1 class="title">Jutlandia: Det Nordjyske CTF Hold</h1>
-            </header>
-            <div id="upcoming-events-div" class="outline-2">
-                <h2>Kommende Arrangementer</h2>
-                <div class="outline-text-2" id="upcoming-events-list">
-                    <ul id="upcoming-events-ul">
-                        {% for event in upcoming_events %}
-                        <li>
-                            <span class="timestamp">[{{event.date}}]</span>: <a href="{{event.link}}">{{event.name}}</a><br>
-                            <span class="location">[Location]</span>: {{event.location}}<br>
-                        </li>
-                        {% endfor %}
-                    </ul>
-                </div>
-            </div>
-            
-            <div id="finished-events-div" class="outline-2">
-                <h2 id="org346855c">Færdige Arrangementer</h2>
-                <div class="outline-text-2" id="finished-events-list">
-                    <ul class="org-ul">
-                        {% for event in finished_events %}
-                        <li>
-                            <span class="timestamp">[{{event.date}}]</span>: <a href="{{event.link}}">{{event.name}}</a><br>
-                            <span class="location">[Location]</span>: {{event.location}}<br>
-                        </li>
-                        {% endfor %}
-                    </ul>
-                </div>
-            </div>
-            
-            <div class="outline-2">
-                <h2>Misc</h2>
-                <div class="outline-text-2">
-                    <p>
-                        Join us on <a href="https://discord.gg/aRrMKBnYze">Discord</a><br>
-                        Contribute on <a href="https://github.com/Jutlandia">Github</a><br>
-                    </p>
-                    
-                    <p>
-                        Also try out <a href="https://nixos.org/">NixOs</a><br>
-                    </p>
-                </div>
-            </div>
-        </div>
-    </body>
-</html>
+{% extends "base.html" %}
+{% block title %}Det Nordjyske CTF Hold{% endblock %}
+{% block content %}
+<header>
+    <h1 class="title">Jutlandia: Det Nordjyske CTF Hold</h1>
+</header>
+<div id="upcoming-events-div" class="outline-2">
+    <h2>Kommende Arrangementer</h2>
+    <div class="outline-text-2" id="upcoming-events-list">
+        <ul id="upcoming-events-ul">
+            {% for event in upcoming_events %}
+            <li>
+                <span class="timestamp">[{{event.date}}]</span>: <a href="{{event.link}}">{{event.name}}</a><br>
+                <span class="location">[Location]</span>: {{event.location}}<br>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+<div id="finished-events-div" class="outline-2">
+    <h2 id="org346855c">Færdige Arrangementer</h2>
+    <div class="outline-text-2" id="finished-events-list">
+        <ul class="org-ul">
+            {% for event in finished_events %}
+            <li>
+                <span class="timestamp">[{{event.date}}]</span>: <a href="{{event.link}}">{{event.name}}</a><br>
+                <span class="location">[Location]</span>: {{event.location}}<br>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+<div class="outline-2">
+    <h2>Misc</h2>
+    <div class="outline-text-2">
+        <p>
+            Join us on <a href="https://discord.gg/aRrMKBnYze">Discord</a><br>
+            Contribute on <a href="https://github.com/Jutlandia">Github</a><br>
+        </p>
+        
+        <p>
+            Also try out <a href="https://nixos.org/">NixOs</a><br>
+        </p>
+    </div>
+</div>
+{% endblock %}
