@@ -150,6 +150,19 @@ def update_event():
     db.session.commit()
     return redirect(url_for("admin"))
 
+@app.route("/api/delete_event", methods=["GET"])
+@session_filter
+def delete_event():
+    id = escape(request.args.get('id', ''))
+    if id:
+        event = Events.query.filter_by(id=id).first()
+        db.session.delete(event)
+        db.session.commit()
+        return redirect(url_for("admin"))
+
+    return redirect(url_for("admin"))
+
+        
 
 @app.route("/oauth")
 def oauth_get_token():
