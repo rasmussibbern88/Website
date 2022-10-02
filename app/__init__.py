@@ -113,15 +113,15 @@ def admin_edit_event(event_id):
 @app.route("/api/add_event", methods=["POST"])
 @session_filter
 def add_event():
-    name = request.form["name"]
-    link = request.form["link"]
-    date = request.form["date"]
-    location = request.form["location"]
+    name     = escape(request.form["name"])
+    link     = escape(request.form["link"])
+    date     = escape(request.form["date"])
+    location = escape(request.form["location"])
 
     event = Events(name, date, link, location)
     db.session.add(event)
     db.session.commit()
-    return "ok"
+    return redirect(url_for("admin"))
 
 @app.route("/api/update_event", methods=["POST"])
 @session_filter
@@ -149,6 +149,8 @@ def update_event():
 
     db.session.commit()
     return redirect(url_for("admin"))
+
+
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
