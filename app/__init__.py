@@ -91,26 +91,18 @@ def get_discord_roles():
     result = r.get(
         f"http://discord.com/api/{api_endpoint}", headers=headers
     )
-    print(result.status_code)
-    print(result.text)
     result = result.json()
-    pprint(result)
-    return result["roles"]
+    session["roles"] = result["roles"]
 
 @app.route("/admin", methods=["GET"])
 @session_filter
 def admin():
-    discord_roles = get_discord_roles()
-    admin_role = app.config["ADMIN_ROLE_ID"]
-    if admin_role in discord_roles:
-        all_events = Events.query.order_by(Events.id).all()
-        pprint(all_events)
-        return render_template(
-            "admin.html",
-            events=all_events
-        )
-    else:
-        return "not admin stay away!!!"
+    all_events = Events.query.order_by(Events.id).all()
+    pprint(all_events)
+    return render_template(
+        "admin.html",
+        events=all_events
+    )
 
 
 @app.route("/api/add_event", methods=["POST"])
