@@ -9,6 +9,9 @@
      margin-bottom: 0.5em;
  }
 
+ table{
+     width: 100%;
+ }
 </style>
 {% endblock %}
 {% block content %}
@@ -18,8 +21,9 @@
 Add event:
 <form action="/api/add_event" method="post">
     <input type="text" placeholder="name"     name="name"     id="name"    >
-    <input type="text" placeholder="link"     name="link"     id="link"    >
-    <input type="text" placeholder="date"     name="date"     id="date"    >
+    <input type="url" placeholder="link"     name="link"     id="link"    >
+    <input type="date" placeholder="date"     name="date"     id="date"    >
+    <input type="text" placeholder="time"     name="time"     id="time"    >
     <input type="text" placeholder="location" name="location" id="location">
     <input type="submit" value="Add event">
 </form>
@@ -28,16 +32,18 @@ Add event:
     <table>
         <thead>
             <tr>
-                <th>id</th>
-                <th>name</th>
-                <th>link</th>
-                <th>date</th>
-                <th>location</th>
-                <th>over</th>
+                <th>Id</th>
+                <th>Name</th>
+                <th>Link</th>
+                <th>Date</th>
+                <th>Location</th>
+                <th>Over</th>
+                <th>Edit</th>
+                <th>Delete</th>
             </tr>
         </thead>
         <tbody>
-            {% for event in events %}
+            {% for event in events|reverse %}
             <tr>
                 <th>{{ event.id }}</th>
                 <th>{{ event.name }}</th>
@@ -45,9 +51,15 @@ Add event:
                 <th>{{ event.date }}</th>
                 <th>{{ event.location }}</th>
                 <th>{{ event.over }}</th>
+                <th><a href="/admin/edit_event/{{event.id}}">Edit</a></th>
+                <th><a href="/api/delete_event?id={{event.id}}">Delete</a></th>
             </tr>
             {% endfor %}
         <tbody>
     </table>
+</div>
+
+<div style="right: 0; top: 0; position: fixed;">
+    <a href="/">Home page</a>
 </div>
 {% endblock %}

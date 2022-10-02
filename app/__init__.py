@@ -40,19 +40,23 @@ class Admins(db.Model):
 
 class Events(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name     = db.Column(db.Text, nullable=True)
-    link     = db.Column(db.Text, nullable=True)
-    date     = db.Column(db.Text, nullable=True)
+    name = db.Column(db.Text, nullable=True)
+    link = db.Column(db.Text, nullable=True)
+    date = db.Column(db.Text, nullable=True)
     location = db.Column(db.Text, nullable=True)
-    over     = db.Column(db.Boolean, nullable=True)
+    over = db.Column(db.Boolean, nullable=True)
 
     def __init__(self, name, date, link, location, over=False):
-        self.name     = name
-        self.link     = link
-        self.date     = date
+        self.name = name
+        self.link = link
+        self.date = date
         self.location = location
-        self.over     = over
-    
+        self.over = over
+
+    def __repr__(self):
+        return f"<Events: {self.name}>"
+
+
 def session_filter(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
@@ -73,17 +77,12 @@ def session_filter(func):
 
 @app.route("/", methods=["GET"])
 def index():
-    db.session.add(Event("AAA","BBBB","LLLL","ASDF", True))
-    db.session.add(Event("ewijjli","BsdfBBB","LLLL","ASDF", True))
-    db.session.add(Event("AAA","BBBB","LLLL","AsdklfjSDF"))
-    db.session.add(Event("AAA","BBBB","LksldjfLLL","ASDF"))
-    db.session.commit()
+    upcoming = Events.query.filter_by(over=False).all()
+    finished = Events.query.filter_by(over=True).all()
+    return render_template(
+        "index.html", upcoming_events=upcoming, finished_events=finished
+    )
 
-    upcoming = Event.query.filter_by(over=False).all()
-    finished = Event.query.filter_by(over=True).all()
-    return render_template("index.html",
-                           upcoming_events=upcoming,
-                           finished_events=finished)
 def get_discord_roles():
     guild_id = app.config["GUILD_ID"]
     api_endpoint = f"/users/@me/guilds/{guild_id}/member"
@@ -116,9 +115,10 @@ def add_event():
     name     = escape(request.form["name"])
     link     = escape(request.form["link"])
     date     = escape(request.form["date"])
+    time     = escape(request.form["time"])
     location = escape(request.form["location"])
 
-    event = Events(name, date, link, location)
+    event = Events(name, f"{date} {time}", link, location)
     db.session.add(event)
     db.session.commit()
     return redirect(url_for("admin"))
