@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %} Admin {% endblock %}
+{% block head %}
+{{super()}}
+<style type="text/css">
+ input{
+     border: none;
+     background-color: #333333;
+     margin-bottom: 0.5em;
+ }
+
+</style>
+{% endblock %}
+{% block content %}
+<header>
+    <h1 class="title">Administration</h1>
+</header>
+Add event:
+<form action="/api/add_event" method="post">
+    <input type="text" placeholder="name"     name="name"     id="name"    >
+    <input type="text" placeholder="link"     name="link"     id="link"    >
+    <input type="text" placeholder="date"     name="date"     id="date"    >
+    <input type="text" placeholder="location" name="location" id="location">
+    <input type="submit" value="Add event">
+</form>
+<div id="events">
+    <h2>Events</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>id</th>
+                <th>name</th>
+                <th>link</th>
+                <th>date</th>
+                <th>location</th>
+                <th>over</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for event in events %}
+            <tr>
+                <th>{{ event.id }}</th>
+                <th>{{ event.name }}</th>
+                <th>{{ event.link }}</th>
+                <th>{{ event.date }}</th>
+                <th>{{ event.location }}</th>
+                <th>{{ event.over }}</th>
+            </tr>
+            {% endfor %}
+        <tbody>
+    </table>
+</div>
+{% endblock %}
