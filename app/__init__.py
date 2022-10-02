@@ -151,27 +151,6 @@ def update_event():
     return redirect(url_for("admin"))
 
 
-
-@app.route("/login", methods=["GET", "POST"])
-def login():
-    if request.method == "POST":
-        user = request.form["username"]
-        passwd = request.form["password"]
-
-        result = Admins.query.filter_by(user=user).first()
-        if result is None:
-            return "Wrong username or password"
-        elif check_password_hash(result.password, passwd):
-            session["username"] = user
-            return redirect(url_for('admin'))
-        else:
-            return "Wrong username or password"
-
-    if request.method == "GET":
-        if "username" not in session:
-            return render_template("login.html")
-        else:
-            return redirect(url_for('admin'))
 @app.route("/oauth")
 def oauth_get_token():
     redirect_uri = app.config["REDIRECT_URI"]
