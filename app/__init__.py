@@ -1,12 +1,7 @@
-from flask import (
-    Flask,
-    render_template,
-    session,
-    request,
-    redirect,
-    url_for
-)
+from flask import Flask, render_template, session, request, redirect, url_for, escape
 from flask_sqlalchemy import SQLAlchemy
+
+from functools import wraps
 
 import requests as r
 
@@ -63,7 +58,15 @@ def session_filter(func):
     def wrapper(*args, **kwargs):
         if "token" not in session:
             return redirect(url_for("oauth_get_token"))
-        return func(*args, **kwargs)
+        
+        if "roles" not in session:
+            get_discord_roles()
+            
+        admin_role = app.config["ADMIN_ROLE_ID"]
+        if admin_role in session["roles"]:
+            return func(*args, **kwargs)
+        else:
+            abort(401)
 
     return wrapper
 
