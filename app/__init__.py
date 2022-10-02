@@ -104,6 +104,11 @@ def admin():
         events=all_events
     )
 
+@app.route("/admin/edit_event/<int:event_id>")
+@session_filter
+def admin_edit_event(event_id):
+    event = Events.query.filter_by(id=event_id).first()
+    return render_template('edit.html', event=event)
 
 @app.route("/api/add_event", methods=["POST"])
 @session_filter
@@ -117,6 +122,33 @@ def add_event():
     db.session.add(event)
     db.session.commit()
     return "ok"
+
+@app.route("/api/update_event", methods=["POST"])
+@session_filter
+def update_event():
+    id       = escape(request.form["id"])
+    name     = escape(request.form["name"])
+    date     = escape(request.form["date"])
+    location = escape(request.form["location"])
+    link     = escape(request.form["link"])
+    name     = escape(request.form["name"])
+    over     = request.form.get('over', '')
+
+    if not over:
+        over = False
+    else:
+        over = True
+
+    event = Events.query.filter_by(id=id).first()
+    event.name       =    name
+    event.date       =    date
+    event.location   =    location
+    event.link       =    link
+    event.name       =    name
+    event.over       =    over
+
+    db.session.commit()
+    return redirect(url_for("admin"))
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
