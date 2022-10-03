@@ -1,4 +1,12 @@
-from flask import Flask, render_template, session, request, redirect, url_for, escape
+from flask import (
+    Flask,
+    render_template,
+    session,
+    request,
+    redirect,
+    url_for,
+    escape,
+)
 from flask_sqlalchemy import SQLAlchemy
 
 from functools import wraps
@@ -10,6 +18,7 @@ from pprint import pprint
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from os import environ
+from os.path import exists
 
 
 app = Flask(__name__)
@@ -19,13 +28,13 @@ app.config["CLIENT_ID"] = environ["DISCORD_CLIENT_ID"]
 app.config["CLIENT_SECRET"] = environ["DISCORD_CLIENT_SECRET"]
 app.config["ADMIN_ROLE_ID"] = environ["DISCORD_ADMIN_ROLE_ID"]
 app.config["REDIRECT_URI"] = environ["DISCORD_REDIRECT_URI"]
+app.config["SQLALCHEMY_DATABASE_URI"] = environ["SQL_DB_URI"]
 try:
     app.secret_key = environ["APP_SECRET_KEY"]
 except KeyError as e:
     print("Caught KeyError, 'APP_SECRET_KEY' not set.\nUsing default")
     app.secret_key = "super Strong and Secret Key"
 
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///jutlandia.db"
 
 db = SQLAlchemy(app)
 
@@ -54,10 +63,10 @@ def session_filter(func):
     def wrapper(*args, **kwargs):
         if "token" not in session:
             return redirect(url_for("oauth_get_token"))
-        
+
         if "roles" not in session:
             get_discord_roles()
-            
+
         admin_role = app.config["ADMIN_ROLE_ID"]
         if admin_role in session["roles"]:
             return func(*args, **kwargs)
@@ -75,39 +84,38 @@ def index():
         "index.html", upcoming_events=upcoming, finished_events=finished
     )
 
+
 def get_discord_roles():
     guild_id = app.config["GUILD_ID"]
     api_endpoint = f"/users/@me/guilds/{guild_id}/member"
     headers = {"Authorization": f"Bearer {session['token']}"}
-    result = r.get(
-        f"http://discord.com/api/{api_endpoint}", headers=headers
-    )
+    result = r.get(f"http://discord.com/api/{api_endpoint}", headers=headers)
     result = result.json()
     session["roles"] = result["roles"]
+
 
 @app.route("/admin", methods=["GET"])
 @session_filter
 def admin():
     all_events = Events.query.order_by(Events.id).all()
     pprint(all_events)
-    return render_template(
-        "admin.html",
-        events=all_events
-    )
+    return render_template("admin.html", events=all_events)
+
 
 @app.route("/admin/edit_event/<int:event_id>")
 @session_filter
 def admin_edit_event(event_id):
     event = Events.query.filter_by(id=event_id).first()
-    return render_template('edit.html', event=event)
+    return render_template("edit.html", event=event)
+
 
 @app.route("/api/add_event", methods=["POST"])
 @session_filter
 def add_event():
-    name     = escape(request.form["name"])
-    link     = escape(request.form["link"])
-    date     = escape(request.form["date"])
-    time     = escape(request.form["time"])
+    name = escape(request.form["name"])
+    link = escape(request.form["link"])
+    date = escape(request.form["date"])
+    time = escape(request.form["time"])
     location = escape(request.form["location"])
 
     event = Events(name, f"{date} {time}", link, location)
@@ -115,16 +123,17 @@ def add_event():
     db.session.commit()
     return redirect(url_for("admin"))
 
+
 @app.route("/api/update_event", methods=["POST"])
 @session_filter
 def update_event():
-    id       = escape(request.form["id"])
-    name     = escape(request.form["name"])
-    date     = escape(request.form["date"])
+    id = escape(request.form["id"])
+    name = escape(request.form["name"])
+    date = escape(request.form["date"])
     location = escape(request.form["location"])
-    link     = escape(request.form["link"])
-    name     = escape(request.form["name"])
-    over     = request.form.get('over', '')
+    link = escape(request.form["link"])
+    name = escape(request.form["name"])
+    over = request.form.get("over", "")
 
     if not over:
         over = False
@@ -132,20 +141,21 @@ def update_event():
         over = True
 
     event = Events.query.filter_by(id=id).first()
-    event.name       =    name
-    event.date       =    date
-    event.location   =    location
-    event.link       =    link
-    event.name       =    name
-    event.over       =    over
+    event.name = name
+    event.date = date
+    event.location = location
+    event.link = link
+    event.name = name
+    event.over = over
 
     db.session.commit()
     return redirect(url_for("admin"))
 
+
 @app.route("/api/delete_event", methods=["GET"])
 @session_filter
 def delete_event():
-    id = escape(request.args.get('id', ''))
+    id = escape(request.args.get("id", ""))
     if id:
         event = Events.query.filter_by(id=id).first()
         db.session.delete(event)
@@ -154,7 +164,6 @@ def delete_event():
 
     return redirect(url_for("admin"))
 
-        
 
 @app.route("/oauth")
 def oauth_get_token():
@@ -189,3 +198,16 @@ def oauth_get_token():
         ).json()
         session["token"] = result["access_token"]
         return redirect(url_for("oauth_get_token"))
+
+
+def main():
+    db_path = app.config["SQLALCHEMY_DATABASE_URI"]
+    db_path = db_path[10:]
+    if exists(db_path):
+        print("[DB]: Database exists")
+    else:
+        print("[DB]: Database doesn't exists")
+        print("[DB]: Creating database")
+        db.create_all()
+
+    app.run()

@@ -1,0 +1,4 @@
+graft jutlandia_site/templates
+graft jutlandia_site/static
+global-exclude *.pyc
+global-exclude *~

@@ -1,17 +1,21 @@
-{ pkgs ? import <nixpkgs> {} }:
-pkgs.stdenv.mkDerivation {
-  name = "Jutlandia-Website";
-  src = ./src;
-  nativeBuildInputs = [ pkgs.emacs ];
+{ pkgs ? import <nixpkgs> {}}:
+let
+  pythonpkgs = pkgs.python310.withPackages (p: with p; [
+    flask
+    flask_sqlalchemy
+    requests
+  ]);
+in
+with pkgs.python310Packages;
+buildPythonPackage {
+  name = "jutlandia_site";
+  version = "1.0";
+  src = ./.;
+  format = "pyproject";
 
-  buildPhase = ''
-    # Put a shell script here.
-    HOME=/tmp/ emacs -Q --script export.el
-    '';
+  propagatedBuildInputs = [ pythonpkgs ];
+  nativeBuildInputs = [ setuptools-scm ];
 
-  installPhase = ''
-      mkdir -p $out;
-      cp -r robots.txt favicon.ico static/ $out/
-      mv *.html $out/;
-    '';
+  doCheck = false;
+  #pythonImportsCheck = [ "jutlandia_site"];
 }
