@@ -3,3 +3,7 @@
     color: #2dd32aff;
     font-family: monospace, monospace;
 }
+.about {
+    text-align: justify;
+    margin-right: 50%;
+}

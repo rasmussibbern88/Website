@@ -203,6 +203,7 @@ def oauth_get_token():
 def main():
     db_path = app.config["SQLALCHEMY_DATABASE_URI"]
     db_path = db_path[10:]
+    print(db_path)
     if exists(db_path):
         print("[DB]: Database exists")
     else:
@@ -211,3 +212,7 @@ def main():
         db.create_all()
 
     app.run()
+
+
+if __name__ == "__main__":
+    main()
