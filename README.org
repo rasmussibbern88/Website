@@ -2,9 +2,20 @@
 
 This repository contains the code that generates the website for [[https://jutlandia.club]].
 
-It utilizes org-mode from Emacs, as a static site generator.
-To build the site, simply run ~build.sh~.
-It's a small shell script that runs the command
-: $ emacs -Q --script export.el
+Now written in python flask!
 
-After which it will convert the ~.org~ files, in the ~pages/~ directory, into ~.html~ files in the root directory of the repository.
+For it to run there needs to be certain environment variables set:
+  - ~DISCORD_GUILD_ID~ ::
+    The discord server
+  - ~DISCORD_CLIENT_ID~ ::
+    The oauth2 client id. Get it at [[https://discord.com/developers/applications][Discord developer portal]], create application, go to ~OAuth2~ for the app and copy the id.
+  - ~DISCORD_CLIENT_SECRET~ ::
+    The oauth2 client secret. Get it at [[https://discord.com/developers/applications][Discord developer portal]], create application, go to ~OAuth2~ for the app and generate/reset secret and copy that.
+  - ~DISCORD_ADMIN_ROLE_ID~ ::
+    The id of the admin role on the Discord server.
+  - ~DISCORD_REDIRECT_URI~ ::
+    The Oauth2 redirect URI. Should look something like:
+    : https://yourdomain.com/oauth
+    Must be listed under OAuth2 menu on [[https://discord.com/developers/applications][Discord developer portal]].
+  - ~SQL_DB_URI~ ::
+    Path to the sql database containing the events.
