@@ -4,6 +4,6 @@
     font-family: monospace, monospace;
 }
 .about {
-    text-align: justify;
-    margin-right: 50%;
+    text-align: left;
+    max-width: 1080px;
 }
