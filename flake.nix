@@ -40,66 +40,6 @@
         };
       in
         {
-          nixosModule = {config, pkgs, lib, ...}:
-            with lib;
-            let
-              cfg = config.services.website;
-            in
-              {
-                options.services.website = {
-                  enable = mkEnableOption "Website service";
-                  databaseUrl = mkOption {
-                    type = types.str;
-                  };
-                  appSecretKey = mkOption {
-                    type = types.str;
-                  };
-                  discordClientSecret = mkOption {
-                    type = types.str;
-                  };
-                  discordClientId = mkOption {
-                    type = types.str;
-                  };
-                  discordGuildId = mkOption {
-                    type = types.str;
-                  };
-                  discordAdminRoleId = mkOption {
-                    type = types.str;
-                  };
-                  discordRedirectUri = mkOption {
-                    type = types.str;
-                  };
-                };
-
-                config = mkIf cfg.enable {
-                  systemd.services.website = {
-                    description = "Jutlandia Website service";
-                    after = [
-                      "network.target"
-                    ];
-                    wantedBy = [ "multi-user.target" ];
-                    environment = {
-                      DISCORD_GUILD_ID = cfg.discordGuildId;
-                      DISCORD_CLIENT_ID = cfg.discordClientId;
-                      DISCORD_CLIENT_SECRET = cfg.discordClientSecret;
-                      DISCORD_ADMIN_ROLE_ID = cfg.discordAdminRoleId;
-                      DISCORD_REDIRECT_URI = cfg.discordRedirectUri;
-
-                      SQLALCHEMY_DATABASE_URI = cfg.databaseUrl;
-                      APP_SECRET_KEY = cfg.appSecretKey;
-                    };
-                    serviceConfig = {
-                      PermissionsStartOnly = true;
-                      LimitNPROC = 512;
-                      LimitNOFILE = 1048576;
-                      NoNewPrivileges = true;
-                      DynamicUser = true;
-                      ExecStart = ''${pkgs.myapp}/bin/run_site'';
-                      Restart = "on-failure";
-                    };
-                  };
-                };
-            };
           app.default = {
             type = "app";
             # replace <script> with the name in the [tool.poetry.scripts] section of your pyproject.toml
@@ -127,5 +67,66 @@
           };
           legacyPackages = pkgs;
         }
-    );
+    ) // {
+      nixosModules.website = {config, pkgs, lib, ...}@args:
+        with lib;
+        let
+          cfg = config.services.website;
+        in
+          {
+            options.services.website = {
+              enable = mkEnableOption "Website service";
+              databaseUrl = mkOption {
+                type = types.str;
+              };
+              appSecretKey = mkOption {
+                type = types.str;
+              };
+              discordClientSecret = mkOption {
+                type = types.str;
+              };
+              discordClientId = mkOption {
+                type = types.str;
+              };
+              discordGuildId = mkOption {
+                type = types.str;
+              };
+              discordAdminRoleId = mkOption {
+                type = types.str;
+              };
+              discordRedirectUri = mkOption {
+                type = types.str;
+              };
+            };
+            
+            config = mkIf cfg.enable {
+              systemd.services.website = {
+                description = "Jutlandia Website service";
+                after = [
+                  "network.target"
+                ];
+                wantedBy = [ "multi-user.target" ];
+                environment = {
+                  DISCORD_GUILD_ID = cfg.discordGuildId;
+                  DISCORD_CLIENT_ID = cfg.discordClientId;
+                  DISCORD_CLIENT_SECRET = cfg.discordClientSecret;
+                  DISCORD_ADMIN_ROLE_ID = cfg.discordAdminRoleId;
+                  DISCORD_REDIRECT_URI = cfg.discordRedirectUri;
+                  
+                  SQLALCHEMY_DATABASE_URI = cfg.databaseUrl;
+                  APP_SECRET_KEY = cfg.appSecretKey;
+                };
+                serviceConfig = {
+                  PermissionsStartOnly = true;
+                  LimitNPROC = 512;
+                  LimitNOFILE = 1048576;
+                  NoNewPrivileges = true;
+                  DynamicUser = true;
+                  ExecStart = ''${pkgs.myapp}/bin/run_site'';
+                  Restart = "on-failure";
+                };
+              };
+            };
+          };
+    };
 }
