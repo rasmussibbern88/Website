@@ -53,21 +53,21 @@
                   };
                   appSecretKey = mkOption {
                     type = types.str;
-                  }
+                  };
                   discordClientSecret = mkOption {
-                    type = types.str
+                    type = types.str;
                   };
                   discordClientId = mkOption {
-                    type = types.str
+                    type = types.str;
                   };
                   discordGuildId = mkOption {
-                    type = types.str
+                    type = types.str;
                   };
                   discordAdminRoleId = mkOption {
-                    type = types.str
+                    type = types.str;
                   };
                   discordRedirectUri = mkOption {
-                    type = types.str
+                    type = types.str;
                   };
                 };
 
@@ -87,7 +87,7 @@
 
                       SQLALCHEMY_DATABASE_URI = cfg.databaseUrl;
                       APP_SECRET_KEY = cfg.appSecretKey;
-                    }
+                    };
                     serviceConfig = {
                       PermissionsStartOnly = true;
                       LimitNPROC = 512;
