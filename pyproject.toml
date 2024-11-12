@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "jutlandia_site"
+version = "0.1.0"
+description = ""
+authors = ["Author Name <author@example.com>"]
+# readme = "README.md"
+# license = "BSD"
+packages = [
+  { include = "jutlandia_site" }
+]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+flask = "^3.0.3"
+flask-sqlalchemy = "^3.1.1"
+requests = "^2.32.3"
+
+[tool.poetry.scripts]
+run_site = 'jutlandia_site:main'
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
