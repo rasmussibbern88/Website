@@ -40,7 +40,7 @@
         };
       in
         {
-          nixosModules.default = {config, pkgs, lib, ...}:
+          nixosModule = {config, pkgs, lib, ...}:
             with lib;
             let
               cfg = config.services.website;
