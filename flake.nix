@@ -87,7 +87,7 @@
                     DISCORD_ADMIN_ROLE_ID = cfg.discordAdminRoleId;
                     DISCORD_REDIRECT_URI = cfg.discordRedirectUri;
                     
-                    SQLALCHEMY_DATABASE_URI = cfg.databaseUrl;
+                    SQL_DB_URI = cfg.databaseUrl;
                     APP_SECRET_KEY = cfg.appSecretKey;
                   };
                   serviceConfig = {
