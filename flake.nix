@@ -66,7 +66,7 @@
             };
           };
           legacyPackages = pkgs;
-
+          
           nixosModules.website = {config, pkgs, lib, ...}@args:
             with lib;
             let
@@ -127,6 +127,6 @@
                   };
                 };
               };
-        )
-    };
+        }
+    );
 }
