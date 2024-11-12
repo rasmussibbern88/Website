@@ -5,8 +5,8 @@ from flask import (
     request,
     redirect,
     url_for,
-    escape,
 )
+from markupsafe import escape
 from flask_sqlalchemy import SQLAlchemy
 
 from functools import wraps
@@ -209,7 +209,8 @@ def main():
     else:
         print("[DB]: Database doesn't exists")
         print("[DB]: Creating database")
-        db.create_all()
+        with app.app_context():
+            db.create_all()
 
     app.run()
 
