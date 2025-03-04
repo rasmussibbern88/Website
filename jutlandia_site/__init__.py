@@ -19,7 +19,8 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from os import environ
 from os.path import exists
-
+from ics import Calendar, Event
+from datetime import timedelta
 
 app = Flask(__name__)
 
@@ -37,6 +38,67 @@ except KeyError as e:
 
 
 db = SQLAlchemy(app)
+
+ical_filename = "static/events.ics"
+
+
+class ICSEvents:
+    def __init__(self, path: str, calendar: Calendar):
+        self.path = path
+        self.calendar = calendar
+        print("initialized calendar")
+
+    @classmethod
+    def new(cls, path):
+        print("creating new calendar")
+        c = Calendar()
+        return cls(path, c)
+
+    @classmethod
+    def get_calendar(cls, path):
+        print("parsing calendar")
+        with open(path, "r") as f:
+            c = Calendar(f.read())
+        return cls(path, c)
+
+    def add_event(self, name, location, begin, url):
+        print("adding event", name, location, begin, url)
+        event = Event()
+        event.name = name
+        event.location = location
+        event.url = url
+        event.begin = begin
+        event.begin = event.begin.replace(tzinfo="Europe/Copenhagen")
+
+        if len(str(begin)) < 12:
+            event.duration = timedelta(hours=3)
+        else:
+            event.duration = timedelta(hours=10)
+        print(event)
+        self.calendar.events.add(event)
+        return self
+
+    def update_event(self, name):
+        return self
+
+    def remove_event(self, name):
+        # calendar events is a set, so we have to iterate and find it so that it can be removed by the objech hash.
+        print("removing event", name)
+        for event in self.calendar.events:
+            if event.name == name:
+                self.calendar.events.remove(event)
+                break
+        return self
+
+    def get_events(self, event):
+        return self.calendar.events
+
+    def save(self):
+        print("saving calendar data")
+        with open(self.path, "w") as f:
+            f.writelines(self.calendar.serialize_iter())
+
+        return self
 
 
 class Events(db.Model):
@@ -118,6 +180,13 @@ def add_event():
     time = escape(request.form["time"])
     location = escape(request.form["location"])
 
+    try:
+        ICSEvents.get_calendar(ical_filename).add_event(
+            name, location, f"{date} {time}", link
+        ).save()
+    except Exception as error:
+        print("error", error)
+
     event = Events(name, f"{date} {time}", link, location)
     db.session.add(event)
     db.session.commit()
@@ -158,6 +227,10 @@ def delete_event():
     id = escape(request.args.get("id", ""))
     if id:
         event = Events.query.filter_by(id=id).first()
+        try:
+            ICSEvents.get_calendar(ical_filename).remove_event(event.date).save()
+        except Exception as error:
+            print("error", error)
         db.session.delete(event)
         db.session.commit()
         return redirect(url_for("admin"))
@@ -211,6 +284,9 @@ def main():
         print("[DB]: Creating database")
         with app.app_context():
             db.create_all()
+
+    if not exists(ical_filename):
+        calendar = ICSEvents.new(ical_filename).save()
 
     app.run()
 
