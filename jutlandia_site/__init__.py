@@ -43,25 +43,14 @@ db = SQLAlchemy(app)
 
 class ICSEvents():
     def __init__(self, calendar: Calendar):
-        #self.path = path
         self.calendar = Calendar()
-        print("initialized calendar")
 
     @classmethod
     def new(cls):
-        print("creating new calendar")
         c = Calendar()
         return cls(c)
 
-    # @classmethod
-    # def get_calendar(cls):
-    #     print("parsing calendar")
-    #     with open(path, "r") as f:
-    #         c = Calendar(f.read())
-    #     return cls(c)
-
     def add_event(self, name, location, begin, url):
-        print("adding event", name, location, begin, url)
         event = Event()
         event.name = name
         event.location = location
@@ -82,7 +71,6 @@ class ICSEvents():
 
     def remove_event(self, name):
         # calendar events is a set, so we have to iterate and find it so that it can be removed by the objech hash.
-        print("removing event", name)
         for event in self.calendar.events:
             if event.name == name:
                 self.calendar.events.remove(event)
@@ -94,13 +82,6 @@ class ICSEvents():
 
     def ics(self) -> str:
         return self.calendar.serialize()
-
-    def save(self):
-        print("saving calendar data")
-        #with open(self.path, "w") as f:
-        #    f.writelines(self.calendar.serialize_iter())
-
-        return self
 
 ics_events = ICSEvents.new()
 
@@ -192,7 +173,7 @@ def add_event():
     try:
         ics_events.add_event(
             name, location, f"{date} {time}", link
-        ).save()
+        )
     except Exception as error:
         print("error", error)
 
@@ -237,7 +218,7 @@ def delete_event():
     if id:
         event = Events.query.filter_by(id=id).first()
         try:
-            ics_events.remove_event(event.date).save()
+            ics_events.remove_event(event.date)
         except Exception as error:
             print("error", error)
         db.session.delete(event)
@@ -293,9 +274,6 @@ def main():
         print("[DB]: Creating database")
         with app.app_context():
             db.create_all()
-
-    #if not exists(ical_filename):
-    #    calendar = ics_events.new(ical_filename).save()
 
     app.run()
 
