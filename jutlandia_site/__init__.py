@@ -5,6 +5,7 @@ from flask import (
     request,
     redirect,
     url_for,
+    Response,
 )
 from markupsafe import escape
 from flask_sqlalchemy import SQLAlchemy
@@ -39,27 +40,25 @@ except KeyError as e:
 
 db = SQLAlchemy(app)
 
-ical_filename = "static/events.ics"
 
-
-class ICSEvents:
-    def __init__(self, path: str, calendar: Calendar):
-        self.path = path
-        self.calendar = calendar
+class ICSEvents():
+    def __init__(self, calendar: Calendar):
+        #self.path = path
+        self.calendar = Calendar()
         print("initialized calendar")
 
     @classmethod
-    def new(cls, path):
+    def new(cls):
         print("creating new calendar")
         c = Calendar()
-        return cls(path, c)
+        return cls(c)
 
-    @classmethod
-    def get_calendar(cls, path):
-        print("parsing calendar")
-        with open(path, "r") as f:
-            c = Calendar(f.read())
-        return cls(path, c)
+    # @classmethod
+    # def get_calendar(cls):
+    #     print("parsing calendar")
+    #     with open(path, "r") as f:
+    #         c = Calendar(f.read())
+    #     return cls(c)
 
     def add_event(self, name, location, begin, url):
         print("adding event", name, location, begin, url)
@@ -93,12 +92,17 @@ class ICSEvents:
     def get_events(self, event):
         return self.calendar.events
 
+    def ics(self) -> str:
+        return self.calendar.serialize()
+
     def save(self):
         print("saving calendar data")
-        with open(self.path, "w") as f:
-            f.writelines(self.calendar.serialize_iter())
+        #with open(self.path, "w") as f:
+        #    f.writelines(self.calendar.serialize_iter())
 
         return self
+
+ics_events = ICSEvents.new()
 
 
 class Events(db.Model):
@@ -146,6 +150,11 @@ def index():
         "index.html", upcoming_events=upcoming, finished_events=finished
     )
 
+@app.route("/kalender.ics", methods=["GET"])
+def calendar():
+    data: str = ics_events.ics()
+    return Response(data)
+
 
 def get_discord_roles():
     guild_id = app.config["GUILD_ID"]
@@ -181,7 +190,7 @@ def add_event():
     location = escape(request.form["location"])
 
     try:
-        ICSEvents.get_calendar(ical_filename).add_event(
+        ics_events.add_event(
             name, location, f"{date} {time}", link
         ).save()
     except Exception as error:
@@ -228,7 +237,7 @@ def delete_event():
     if id:
         event = Events.query.filter_by(id=id).first()
         try:
-            ICSEvents.get_calendar(ical_filename).remove_event(event.date).save()
+            ics_events.remove_event(event.date).save()
         except Exception as error:
             print("error", error)
         db.session.delete(event)
@@ -285,8 +294,8 @@ def main():
         with app.app_context():
             db.create_all()
 
-    if not exists(ical_filename):
-        calendar = ICSEvents.new(ical_filename).save()
+    #if not exists(ical_filename):
+    #    calendar = ics_events.new(ical_filename).save()
 
     app.run()
 
