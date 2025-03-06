@@ -5,6 +5,7 @@ from flask import (
     request,
     redirect,
     url_for,
+    Response,
 )
 from markupsafe import escape
 from flask_sqlalchemy import SQLAlchemy
@@ -19,7 +20,8 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from os import environ
 from os.path import exists
-
+from ics import Calendar, Event
+from datetime import timedelta
 
 app = Flask(__name__)
 
@@ -37,6 +39,51 @@ except KeyError as e:
 
 
 db = SQLAlchemy(app)
+
+
+class ICSEvents():
+    def __init__(self, calendar: Calendar):
+        self.calendar = Calendar()
+
+    @classmethod
+    def new(cls):
+        c = Calendar()
+        return cls(c)
+
+    def add_event(self, name, location, begin, url):
+        event = Event()
+        event.name = name
+        event.location = location
+        event.url = url
+        event.begin = begin
+        event.begin = event.begin.replace(tzinfo="Europe/Copenhagen")
+
+        if len(str(begin)) < 12:
+            event.duration = timedelta(hours=3)
+        else:
+            event.duration = timedelta(hours=10)
+        print(event)
+        self.calendar.events.add(event)
+        return self
+
+    def update_event(self, name):
+        return self
+
+    def remove_event(self, name):
+        # calendar events is a set, so we have to iterate and find it so that it can be removed by the objech hash.
+        for event in self.calendar.events:
+            if event.name == name:
+                self.calendar.events.remove(event)
+                break
+        return self
+
+    def get_events(self, event):
+        return self.calendar.events
+
+    def ics(self) -> str:
+        return self.calendar.serialize()
+
+ics_events = ICSEvents.new()
 
 
 class Events(db.Model):
@@ -84,6 +131,11 @@ def index():
         "index.html", upcoming_events=upcoming, finished_events=finished
     )
 
+@app.route("/kalender.ics", methods=["GET"])
+def calendar():
+    data: str = ics_events.ics()
+    return Response(data)
+
 
 def get_discord_roles():
     guild_id = app.config["GUILD_ID"]
@@ -117,6 +169,13 @@ def add_event():
     date = escape(request.form["date"])
     time = escape(request.form["time"])
     location = escape(request.form["location"])
+
+    try:
+        ics_events.add_event(
+            name, location, f"{date} {time}", link
+        )
+    except Exception as error:
+        print("error", error)
 
     event = Events(name, f"{date} {time}", link, location)
     db.session.add(event)
@@ -158,6 +217,10 @@ def delete_event():
     id = escape(request.args.get("id", ""))
     if id:
         event = Events.query.filter_by(id=id).first()
+        try:
+            ics_events.remove_event(event.date)
+        except Exception as error:
+            print("error", error)
         db.session.delete(event)
         db.session.commit()
         return redirect(url_for("admin"))
