@@ -11,9 +11,10 @@ packages = [
 
 [tool.poetry.dependencies]
 python = "^3.11"
-flask = "^3.0.3"
+flask = "^3.1.0"
 flask-sqlalchemy = "^3.1.1"
 requests = "^2.32.3"
+ics = "0.7.2"
 
 [tool.poetry.scripts]
 run_site = 'jutlandia_site:main'
