@@ -11,7 +11,7 @@ from markupsafe import escape
 from flask_sqlalchemy import SQLAlchemy
 
 from functools import wraps
-
+import logging
 import requests as r
 
 from pprint import pprint
@@ -22,12 +22,15 @@ from os import environ
 from os.path import exists
 from ics import Calendar, Event
 from datetime import timedelta
+import discord
+import asyncio
 
 app = Flask(__name__)
 
 app.config["GUILD_ID"] = environ["DISCORD_GUILD_ID"]
 app.config["CLIENT_ID"] = environ["DISCORD_CLIENT_ID"]
 app.config["CLIENT_SECRET"] = environ["DISCORD_CLIENT_SECRET"]
+app.config["INFRA_CLIENT_SECRET"] = environ["DISCORD_INFRA_CLIENT_SECRET"]
 app.config["ADMIN_ROLE_ID"] = environ["DISCORD_ADMIN_ROLE_ID"]
 app.config["REDIRECT_URI"] = environ["DISCORD_REDIRECT_URI"]
 app.config["SQLALCHEMY_DATABASE_URI"] = environ["SQL_DB_URI"]
@@ -41,7 +44,7 @@ except KeyError as e:
 db = SQLAlchemy(app)
 
 
-class ICSEvents():
+class ICSEvents:
     def __init__(self, calendar: Calendar):
         self.calendar = Calendar()
 
@@ -171,9 +174,7 @@ def add_event():
     location = escape(request.form["location"])
 
     try:
-        ics_events.add_event(
-            name, location, f"{date} {time}", link
-        )
+        ics_events.add_event(name, location, f"{date} {time}", link)
     except Exception as error:
         print("error", error)
 
@@ -263,7 +264,7 @@ def oauth_get_token():
         return redirect(url_for("oauth_get_token"))
 
 
-def main():
+async def main():
     db_path = app.config["SQLALCHEMY_DATABASE_URI"]
     db_path = db_path[10:]
     print(db_path)
@@ -275,8 +276,104 @@ def main():
         with app.app_context():
             db.create_all()
 
-    app.run()
+    async def run_discord_client():
+        # discord.Intents(guild_scheduled_events=True)
+        intents = discord.Intents.none()
+        intents.guild_scheduled_events = True
+        # intents = discord.Intents.default()
+        # intents.message_content = True
+
+        client = MyClient(intents=intents)
+        async with client:
+            missing = discord.utils.MISSING
+            discord.utils.setup_logging(
+                handler=missing,
+                formatter=missing,
+                level=logging.DEBUG,
+                root=True,
+            )
+            await client.start(
+                app.config["INFRA_CLIENT_SECRET"],
+                reconnect=True,
+            )
+
+    client = asyncio.create_task(run_discord_client())
+
+    website = asyncio.to_thread(app.run)
+
+    await asyncio.gather(client, website)
+
+
+class MyClient(discord.Client):
+    async def on_ready(self):
+        print(f"Logged on as {self.user}!")
+
+    async def on_scheduled_event_create(self, event: discord.ScheduledEvent):
+        print(
+            f"Scheduled event created: {event.name} at {event.start_time} to {event.end_time}"
+        )
+        self.add_event(event)
+
+    async def on_scheduled_event_update(
+        self, before: discord.ScheduledEvent, after: discord.ScheduledEvent
+    ):
+        print(f"Scheduled event updated: {before.name} to {after.name}")
+        self.update_event(before, after)
+
+    async def on_scheduled_event_delete(self, event: discord.ScheduledEvent):
+        print(f"Scheduled event deleted: {event.name}")
+        self.remove_event(event)
+
+    def remove_event(self, event: discord.ScheduledEvent):
+        print(f"Scheduled event removed: {event.name}")
+        try:
+            ics_events.remove_event(event.name)
+            event = Events.query.filter_by(name=event.name).first()
+            db.session.delete(event)
+            db.session.commit()
+        except Exception as error:
+            print("error", error)
+
+    def add_event(self, event: discord.ScheduledEvent):
+        # TODO keep data datetime objects for calendar, and only convert to string for the database.
+        print(f"Scheduled event added: {event.name}")
+        name = event.name
+        location = event.location if event.location else "Online"
+        date = event.start_time.strftime("%Y-%m-%d")
+        time = event.start_time.strftime("%H:%M")
+
+        try:
+            ics_events.add_event(name, location, f"{date} {time}", "")
+            event = Events(name, f"{date} {time}", "", location)
+            db.session.add(event)
+            db.session.commit()
+        except Exception as error:
+            print("error", error)
+
+    def update_event(
+        self, before: discord.ScheduledEvent, after: discord.ScheduledEvent
+    ):
+        print(
+            f"Scheduled event updated: {before.name}"
+        )  # TODO combine with date, to avoid deleting all tirsdagshacking events
+        location = after.location if after.location else "Online"
+        date = after.start_time.strftime("%Y-%m-%d")
+        time = after.start_time.strftime("%H:%M")
+        try:
+            ics_events.remove_event(before.name)
+            ics_events.add_event(after.name, location, f"{date} {time}", "")
+            event = Events.query.filter_by(name=before.name).first()
+            db.session.delete(event)
+            db.session.add(Events(after.name, f"{date} {time}", "", location))
+            db.session.commit()
+        except Exception as error:
+            print("error", error)
+
+
+# ics_events.add_event(name, location, f"{date} {time}", link)
+# ics_events.remove_event(event.date)
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
+    # main()
