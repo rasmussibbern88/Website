@@ -5,6 +5,7 @@ from flask import (
     request,
     redirect,
     url_for,
+    abort,
     Response,
 )
 from markupsafe import escape
@@ -21,7 +22,8 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from os import environ
 from os.path import exists
 from ics import Calendar, Event
-from datetime import timedelta
+from datetime import timedelta, datetime
+from zoneinfo import ZoneInfo
 import discord
 import asyncio
 
@@ -42,6 +44,7 @@ except KeyError as e:
 
 
 db = SQLAlchemy(app)
+logger = logging.getLogger(__name__)
 
 
 class ICSEvents:
@@ -53,23 +56,31 @@ class ICSEvents:
         c = Calendar()
         return cls(c)
 
-    def add_event(self, name, location, begin, url):
+    def add_event(self, name: str, location: str, begin: datetime, url: str):
         event = Event()
         event.name = name
         event.location = location
         event.url = url
-        event.begin = begin
-        event.begin = event.begin.replace(tzinfo="Europe/Copenhagen")
 
-        if len(str(begin)) < 12:
+        # If it has tz info
+        if begin.tzinfo:
+            begin = begin.astimezone(tz=ZoneInfo("UTC"))
+        # Else set it to Copenhagen time
+        if not begin.tzinfo:
+            begin = begin.replace(tzinfo=ZoneInfo("Europe/Copenhagen"))
+            begin = begin.astimezone(tz=ZoneInfo("UTC"))
+
+        name_lower = name.lower()
+        if "CTF" in name_lower:
+            event.duration = timedelta(hours=48)
+        elif "tirsdagshacking" in name_lower:
             event.duration = timedelta(hours=3)
         else:
-            event.duration = timedelta(hours=10)
-        print(event)
-        self.calendar.events.add(event)
-        return self
+            event.duration = timedelta(hours=4)
 
-    def update_event(self, name):
+        logger.info(f"Adding event {event} at {begin} with duration {event.duration}")
+        event.begin = begin
+        self.calendar.events.add(event)
         return self
 
     def remove_event(self, name):
@@ -85,6 +96,7 @@ class ICSEvents:
 
     def ics(self) -> str:
         return self.calendar.serialize()
+
 
 ics_events = ICSEvents.new()
 
@@ -134,6 +146,7 @@ def index():
         "index.html", upcoming_events=upcoming, finished_events=finished
     )
 
+
 @app.route("/kalender.ics", methods=["GET"])
 def calendar():
     data: str = ics_events.ics()
@@ -174,7 +187,9 @@ def add_event():
     location = escape(request.form["location"])
 
     try:
-        ics_events.add_event(name, location, f"{date} {time}", link)
+        # parse datetime
+        _time = datetime.strptime(f"{date} {time}", "%Y-%m-%d %H:%M")
+        ics_events.add_event(name, location, _time, link)
     except Exception as error:
         print("error", error)
 
@@ -306,72 +321,75 @@ async def main():
 
 class MyClient(discord.Client):
     async def on_ready(self):
-        print(f"Logged on as {self.user}!")
+        logger.info(f"Logged on as {self.user}!")
 
     async def on_scheduled_event_create(self, event: discord.ScheduledEvent):
-        print(
-            f"Scheduled event created: {event.name} at {event.start_time} to {event.end_time}"
-        )
         self.add_event(event)
 
     async def on_scheduled_event_update(
         self, before: discord.ScheduledEvent, after: discord.ScheduledEvent
     ):
-        print(f"Scheduled event updated: {before.name} to {after.name}")
         self.update_event(before, after)
 
     async def on_scheduled_event_delete(self, event: discord.ScheduledEvent):
-        print(f"Scheduled event deleted: {event.name}")
         self.remove_event(event)
 
     def remove_event(self, event: discord.ScheduledEvent):
-        print(f"Scheduled event removed: {event.name}")
+        logger.info(f"Removing event {event}")
         try:
             ics_events.remove_event(event.name)
             event = Events.query.filter_by(name=event.name).first()
-            db.session.delete(event)
-            db.session.commit()
+            if event is not None:
+                db.session.delete(event)
+                db.session.commit()
         except Exception as error:
-            print("error", error)
+            logger.error("Failed to remove event", exc_info=error)
 
     def add_event(self, event: discord.ScheduledEvent):
-        # TODO keep data datetime objects for calendar, and only convert to string for the database.
-        print(f"Scheduled event added: {event.name}")
+        logger.info(f"Adding event {event}")
         name = event.name
         location = event.location if event.location else "Online"
+
+        event.start_time = event.start_time.astimezone(tz=ZoneInfo("Europe/Copenhagen"))
+
         date = event.start_time.strftime("%Y-%m-%d")
         time = event.start_time.strftime("%H:%M")
 
         try:
-            ics_events.add_event(name, location, f"{date} {time}", "")
-            event = Events(name, f"{date} {time}", "", location)
+            ics_events.add_event(name, location, event.start_time, event.url)
+            event = Events(name, f"{date} {time}", event.url, location)
             db.session.add(event)
             db.session.commit()
         except Exception as error:
-            print("error", error)
+            logger.error("Failed to add event", exc_info=error)
 
     def update_event(
         self, before: discord.ScheduledEvent, after: discord.ScheduledEvent
     ):
-        print(
-            f"Scheduled event updated: {before.name}"
-        )  # TODO combine with date, to avoid deleting all tirsdagshacking events
+        logger.info(f"Updating event from {before} to {after}")
+        # TODO combine with date, to avoid deleting all tirsdagshacking events
+
         location = after.location if after.location else "Online"
+        after.start_time = after.start_time.astimezone(tz=ZoneInfo("Europe/Copenhagen"))
         date = after.start_time.strftime("%Y-%m-%d")
         time = after.start_time.strftime("%H:%M")
+
         try:
             ics_events.remove_event(before.name)
-            ics_events.add_event(after.name, location, f"{date} {time}", "")
+            ics_events.add_event(after.name, location, after.start_time, after.url)
             event = Events.query.filter_by(name=before.name).first()
             db.session.delete(event)
-            db.session.add(Events(after.name, f"{date} {time}", "", location))
+            db.session.add(
+                Events(
+                    after.name,
+                    f"{date} {time}",
+                    after.url,
+                    location,
+                )
+            )
             db.session.commit()
         except Exception as error:
             print("error", error)
-
-
-# ics_events.add_event(name, location, f"{date} {time}", link)
-# ics_events.remove_event(event.date)
 
 
 if __name__ == "__main__":
