@@ -73,7 +73,7 @@
                 };
                 infraClientSecret = mkOption {
                   type = types.str;
-                }
+                };
               };
               
               config = mkIf cfg.enable {
