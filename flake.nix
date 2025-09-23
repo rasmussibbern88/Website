@@ -71,6 +71,9 @@
                 discordRedirectUri = mkOption {
                   type = types.str;
                 };
+                infraClientSecret = mkOption {
+                  type = types.str;
+                };
               };
               
               config = mkIf cfg.enable {
@@ -86,6 +89,7 @@
                     DISCORD_CLIENT_SECRET = cfg.discordClientSecret;
                     DISCORD_ADMIN_ROLE_ID = cfg.discordAdminRoleId;
                     DISCORD_REDIRECT_URI = cfg.discordRedirectUri;
+                    INFRA_CLIENT_SECRET = cfg.infraClientSecret;
                     
                     SQL_DB_URI = cfg.databaseUrl;
                     APP_SECRET_KEY = cfg.appSecretKey;

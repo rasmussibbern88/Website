@@ -279,7 +279,7 @@ def oauth_get_token():
         return redirect(url_for("oauth_get_token"))
 
 
-async def main():
+async def run():
     db_path = app.config["SQLALCHEMY_DATABASE_URI"]
     db_path = db_path[10:]
     print(db_path)
@@ -391,7 +391,9 @@ class MyClient(discord.Client):
         except Exception as error:
             print("error", error)
 
+def main():
+    asyncio.run(run())
+
 
 if __name__ == "__main__":
-    asyncio.run(main())
-    # main()
+    main()
