@@ -338,10 +338,11 @@ class MyClient(discord.Client):
         logger.info(f"Removing event {event}")
         try:
             ics_events.remove_event(event.name)
-            event = Events.query.filter_by(name=event.name).first()
-            if event is not None:
-                db.session.delete(event)
-                db.session.commit()
+            with app.app_context():
+                event = Events.query.filter_by(name=event.name).first()
+                if event is not None:
+                    db.session.delete(event)
+                    db.session.commit()
         except Exception as error:
             logger.error("Failed to remove event", exc_info=error)
 
@@ -357,9 +358,11 @@ class MyClient(discord.Client):
 
         try:
             ics_events.add_event(name, location, event.start_time, event.url)
-            event = Events(name, f"{date} {time}", event.url, location)
-            db.session.add(event)
-            db.session.commit()
+            
+            with app.app_context():
+                event = Events(name, f"{date} {time}", event.url, location)
+                db.session.add(event)
+                db.session.commit()
         except Exception as error:
             logger.error("Failed to add event", exc_info=error)
 
@@ -377,17 +380,19 @@ class MyClient(discord.Client):
         try:
             ics_events.remove_event(before.name)
             ics_events.add_event(after.name, location, after.start_time, after.url)
-            event = Events.query.filter_by(name=before.name).first()
-            db.session.delete(event)
-            db.session.add(
-                Events(
-                    after.name,
-                    f"{date} {time}",
-                    after.url,
-                    location,
+            
+            with app.app_context():
+                event = Events.query.filter_by(name=before.name).first()
+                db.session.delete(event)
+                db.session.add(
+                    Events(
+                        after.name,
+                        f"{date} {time}",
+                        after.url,
+                        location,
+                    )
                 )
-            )
-            db.session.commit()
+                db.session.commit()
         except Exception as error:
             print("error", error)
 
