@@ -1,110 +1,166 @@
 {
-  description = "Application packaged using poetry2nix";
-  
+  description = "Jutlandia site using uv2nix";
+
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable-small";
-    poetry2nix = {
-      url = "github:nix-community/poetry2nix";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+
+    pyproject-nix = {
+      url = "github:pyproject-nix/pyproject.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    uv2nix = {
+      url = "github:pyproject-nix/uv2nix";
+      inputs.pyproject-nix.follows = "pyproject-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    pyproject-build-systems = {
+      url = "github:pyproject-nix/build-system-pkgs";
+      inputs.pyproject-nix.follows = "pyproject-nix";
+      inputs.uv2nix.follows = "uv2nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
-  
-  outputs = { self, nixpkgs, poetry2nix }:
+
+  outputs =
+    {
+      self,
+      nixpkgs,
+      pyproject-nix,
+      uv2nix,
+      pyproject-build-systems,
+      ...
+    }:
     let
-      system = "x86_64-linux";
-      pkgs = nixpkgs.legacyPackages.${system};
-      inherit (poetry2nix.lib.mkPoetry2Nix {inherit pkgs;}) mkPoetryApplication;
-      jutlandia-site = mkPoetryApplication {projectDir = ./.;};
-    in
-      {
-        apps.${system}.default = {
-          type = "app";
-          # replace <script> with the name in the [tool.poetry.scripts] section of your pyproject.toml
-          program = "${jutlandia-site}/bin/run_site";
-        };
-        packages.${system}.default = jutlandia-site;
-        devShells.${system} = {
-          # Shell for app dependencies.
-          #
-          #     nix develop
-          #
-          # Use this shell for developing your app.
-          default = pkgs.mkShell {
-            inputsFrom = [ jutlandia-site ];
-          };
-          
-          # Shell for poetry.
-          #
-          #     nix develop .#poetry
-          #
-          # Use this shell for changes to pyproject.toml and poetry.lock.
-          poetry = pkgs.mkShell {
-            packages = [ pkgs.poetry ];
-          };
-        };
-        nixosModules.website = {config, pkgs, lib, ...}@args:
-          with lib;
-          let
-            cfg = config.services.website;
-          in
-            {
-              options.services.website = {
-                enable = mkEnableOption "Website service";
-                databaseUrl = mkOption {
-                  type = types.str;
-                };
-                appSecretKey = mkOption {
-                  type = types.str;
-                };
-                discordClientSecret = mkOption {
-                  type = types.str;
-                };
-                discordClientId = mkOption {
-                  type = types.str;
-                };
-                discordGuildId = mkOption {
-                  type = types.str;
-                };
-                discordAdminRoleId = mkOption {
-                  type = types.str;
-                };
-                discordRedirectUri = mkOption {
-                  type = types.str;
-                };
-                infraClientSecret = mkOption {
-                  type = types.str;
-                };
-              };
-              
-              config = mkIf cfg.enable {
-                systemd.services.website = {
-                  description = "Jutlandia Website service";
-                  after = [
-                    "network.target"
-                  ];
-                  wantedBy = [ "multi-user.target" ];
-                  environment = {
-                    DISCORD_GUILD_ID = cfg.discordGuildId;
-                    DISCORD_CLIENT_ID = cfg.discordClientId;
-                    DISCORD_CLIENT_SECRET = cfg.discordClientSecret;
-                    DISCORD_ADMIN_ROLE_ID = cfg.discordAdminRoleId;
-                    DISCORD_REDIRECT_URI = cfg.discordRedirectUri;
-                    INFRA_CLIENT_SECRET = cfg.infraClientSecret;
-                    
-                    SQL_DB_URI = cfg.databaseUrl;
-                    APP_SECRET_KEY = cfg.appSecretKey;
-                  };
-                  serviceConfig = {
-                    PermissionsStartOnly = true;
-                    LimitNPROC = 512;
-                    LimitNOFILE = 1048576;
-                    NoNewPrivileges = true;
-                    DynamicUser = true;
-                    ExecStart = ''${jutlandia-site}/bin/run_site'';
-                    Restart = "on-failure";
-                  };
-                };
-              };
-            };
+      inherit (nixpkgs) lib;
+      forAllSystems = lib.genAttrs lib.systems.flakeExposed;
+
+      workspace = uv2nix.lib.workspace.loadWorkspace { workspaceRoot = ./.; };
+
+      overlay = workspace.mkPyprojectOverlay {
+        sourcePreference = "wheel";
       };
+
+      editableOverlay = workspace.mkEditablePyprojectOverlay {
+        root = "$REPO_ROOT";
+      };
+
+      pythonSets = forAllSystems (
+        system:
+        let
+          pkgs = nixpkgs.legacyPackages.${system};
+          python = pkgs.python3;
+        in
+        (pkgs.callPackage pyproject-nix.build.packages {
+          inherit python;
+        }).overrideScope
+          (
+            lib.composeManyExtensions [
+              pyproject-build-systems.overlays.wheel
+              overlay
+            ]
+          )
+      );
+      
+    in
+    {
+      devShells = forAllSystems (
+        system:
+        let
+          pkgs = nixpkgs.legacyPackages.${system};
+          pythonSet = pythonSets.${system}.overrideScope editableOverlay;
+          virtualenv = pythonSet.mkVirtualEnv "jutlandia-site-dev-env" workspace.deps.all;
+        in
+        {
+          default = pkgs.mkShell {
+            packages = [
+              virtualenv
+              pkgs.uv
+            ];
+            env = {
+              UV_NO_SYNC = "1";
+              UV_PYTHON = pythonSet.python.interpreter;
+              UV_PYTHON_DOWNLOADS = "never";
+            };
+            shellHook = ''
+              unset PYTHONPATH
+              export REPO_ROOT=$(git rev-parse --show-toplevel)
+              . ${virtualenv}/bin/activate
+            '';
+          };
+        }
+      );
+
+      packages = forAllSystems (system: {
+        default = pythonSets.${system}.mkVirtualEnv "jutlandia-site-env" workspace.deps.default;
+      });
+
+    
+    nixosModules.website = { config, pkgs, lib, ... }@args:
+      with lib;
+      let
+        cfg = config.services.website;
+        # Reference the package built for the system the module is running on
+        jutlandia-site = self.packages.${pkgs.system}.default;
+      in
+      {
+        options.services.website = {
+          enable = mkEnableOption "Website service";
+          databaseUrl = mkOption {
+            type = types.str;
+          };
+          appSecretKey = mkOption {
+            type = types.str;
+          };
+          discordClientSecret = mkOption {
+            type = types.str;
+          };
+          discordClientId = mkOption {
+            type = types.str;
+          };
+          discordGuildId = mkOption {
+            type = types.str;
+          };
+          discordAdminRoleId = mkOption {
+            type = types.str;
+          };
+          discordRedirectUri = mkOption {
+            type = types.str;
+          };
+          infraClientSecret = mkOption {
+            type = types.str;
+          };
+        };
+
+        config = mkIf cfg.enable {
+          systemd.services.website = {
+            description = "Jutlandia Website service";
+            after = [ "network.target" ];
+            wantedBy = [ "multi-user.target" ];
+            environment = {
+              DISCORD_GUILD_ID = cfg.discordGuildId;
+              DISCORD_CLIENT_ID = cfg.discordClientId;
+              DISCORD_CLIENT_SECRET = cfg.discordClientSecret;
+              DISCORD_ADMIN_ROLE_ID = cfg.discordAdminRoleId;
+              DISCORD_REDIRECT_URI = cfg.discordRedirectUri;
+              DISCORD_INFRA_CLIENT_SECRET = cfg.infraClientSecret;
+
+              SQL_DB_URI = cfg.databaseUrl;
+              APP_SECRET_KEY = cfg.appSecretKey;
+            };
+            serviceConfig = {
+              PermissionsStartOnly = true;
+              LimitNPROC = 512;
+              LimitNOFILE = 1048576;
+              NoNewPrivileges = true;
+              DynamicUser = true;
+              # This is the key change: point to the new package path
+              ExecStart = "${jutlandia-site}/bin/run_site";
+              Restart = "on-failure";
+            };
+          };
+        };
+      };
+  };
 }

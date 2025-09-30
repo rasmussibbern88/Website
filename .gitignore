@@ -1,3 +1,5 @@
 *~
 /app/__pycache__/
 *.db
+src/jutlandia_site/:memory
+src/jutlandia_site/__pycache__/*
